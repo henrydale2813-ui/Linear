@@ -5,6 +5,9 @@ const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
+
+console.log("SUPABASE LOADED");
+
 const usernameInput = document.getElementById("usernameInput");
 const passwordInput = document.getElementById("passwordInput");
 const signupBtn = document.getElementById("signupBtn");
@@ -12,6 +15,9 @@ const loginBtn = document.getElementById("loginBtn");
 const authMessage = document.getElementById("authMessage");
 
 signupBtn.addEventListener("click", async () => {
+
+  console.log("CREATE ACCOUNT CLICKED");
+
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
 
@@ -34,21 +40,26 @@ signupBtn.addEventListener("click", async () => {
 
   authMessage.textContent = "Creating account...";
 
+  console.log("Trying signup:", email);
+
   const { data, error } = await supabase.auth.signUp({
     email: email,
     password: password
   });
 
+  console.log("SIGNUP RESULT:", data, error);
+
   if (error) {
-    authMessage.textContent = error.message;
+    authMessage.textContent = "ERROR: " + error.message;
     return;
   }
 
   if (!data.user) {
-    authMessage.textContent = "Account created, but no user was returned.";
+    authMessage.textContent = "No user was returned.";
     return;
   }
 
+  // Create the player record
   const { error: playerError } = await supabase
     .from("players")
     .insert({
@@ -56,16 +67,24 @@ signupBtn.addEventListener("click", async () => {
       username: username
     });
 
+  console.log("PLAYER RESULT:", playerError);
+
   if (playerError) {
-    authMessage.textContent = playerError.message;
+    authMessage.textContent =
+      "Account created, but player setup failed: " +
+      playerError.message;
     return;
   }
 
-  authMessage.textContent = "Account created!";
+  authMessage.textContent = "ACCOUNT CREATED!";
+
 });
 
 
 loginBtn.addEventListener("click", async () => {
+
+  console.log("LOGIN CLICKED");
+
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
 
@@ -78,16 +97,22 @@ loginBtn.addEventListener("click", async () => {
 
   authMessage.textContent = "Logging in...";
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password
-  });
+  const { data, error } =
+    await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+  console.log("LOGIN RESULT:", data, error);
 
   if (error) {
-    authMessage.textContent = error.message;
+    authMessage.textContent = "ERROR: " + error.message;
     return;
   }
 
-  authMessage.textContent = "Logged in!";
+  authMessage.textContent = "LOGGED IN!";
+
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "block";
+
 });
-console.log("LINEAR SUPABASE FILE LOADED");
