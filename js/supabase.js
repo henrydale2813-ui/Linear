@@ -16,11 +16,9 @@ const signupBtn = document.getElementById("signupBtn");
 const loginBtn = document.getElementById("loginBtn");
 const authMessage = document.getElementById("authMessage");
 
-console.log("SIGNUP BUTTON:", signupBtn);
-console.log("LOGIN BUTTON:", loginBtn);
+console.log("BUTTON:", signupBtn);
 
 signupBtn.addEventListener("click", async () => {
-
   console.log("CREATE ACCOUNT CLICKED");
 
   const username = usernameInput.value.trim();
@@ -45,10 +43,7 @@ signupBtn.addEventListener("click", async () => {
 
   const email = username.toLowerCase() + "@linear.game";
 
-  console.log("SIGNING UP:", email);
-
   try {
-
     const { data, error } = await supabaseClient.auth.signUp({
       email: email,
       password: password
@@ -73,8 +68,6 @@ signupBtn.addEventListener("click", async () => {
         username: username
       });
 
-    console.log("PLAYER RESULT:", playerError);
-
     if (playerError) {
       authMessage.textContent =
         "Account created, but player setup failed: " +
@@ -88,17 +81,12 @@ signupBtn.addEventListener("click", async () => {
     document.getElementById("gameScreen").style.display = "block";
 
   } catch (err) {
-
-    console.error("SIGNUP CRASH:", err);
+    console.error(err);
     authMessage.textContent = "ERROR: " + err.message;
-
   }
-
 });
 
-
 loginBtn.addEventListener("click", async () => {
-
   console.log("LOGIN CLICKED");
 
   const username = usernameInput.value.trim();
@@ -114,7 +102,6 @@ loginBtn.addEventListener("click", async () => {
   const email = username.toLowerCase() + "@linear.game";
 
   try {
-
     const { data, error } =
       await supabaseClient.auth.signInWithPassword({
         email: email,
@@ -134,12 +121,9 @@ loginBtn.addEventListener("click", async () => {
     document.getElementById("gameScreen").style.display = "block";
 
   } catch (err) {
-
-    console.error("LOGIN CRASH:", err);
+    console.error(err);
     authMessage.textContent = "ERROR: " + err.message;
-
   }
-
 });
 
 console.log("SUPABASE.JS READY");
