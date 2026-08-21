@@ -1,16 +1,10 @@
-// ===============================
-// LINEAR SUPABASE AUTH
-// ===============================
-
 const SUPABASE_URL = "https://mvimkvyyycfsyvwsqrvr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_IXxv555lJWj6CnGRITlDiw_U1K06ahG";
 
-const supabaseClient = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-
-console.log("SUPABASE.JS LOADED");
 
 const usernameInput = document.getElementById("usernameInput");
 const passwordInput = document.getElementById("passwordInput");
@@ -19,20 +13,15 @@ const loginBtn = document.getElementById("loginBtn");
 const authMessage = document.getElementById("authMessage");
 
 function showGame() {
-  const authScreen = document.getElementById("authScreen");
-  const gameScreen = document.getElementById("gameScreen");
-
-  if (authScreen) authScreen.style.display = "none";
-  if (gameScreen) gameScreen.style.display = "block";
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "block";
 }
 
-// ===============================
-// CREATE ACCOUNT
-// ===============================
+/* =========================
+   CREATE ACCOUNT
+   ========================= */
 
 signupBtn.addEventListener("click", async () => {
-
-  console.log("CREATE ACCOUNT CLICKED");
 
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
@@ -52,69 +41,65 @@ signupBtn.addEventListener("click", async () => {
     return;
   }
 
-  const email = username.toLowerCase() + "@linear.game";
+  signupBtn.disabled = true;
+  loginBtn.disabled = true;
 
   authMessage.textContent = "Creating account...";
 
+  const email = username.toLowerCase() + "@linear.game";
+
   try {
 
-    const { data, error } =
-      await supabaseClient.auth.signUp({
-        email: email,
-        password: password
-      });
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          username: username
+        }
+      }
+    });
 
     console.log("SIGNUP:", data, error);
 
     if (error) {
       authMessage.textContent = "ERROR: " + error.message;
+      signupBtn.disabled = false;
+      loginBtn.disabled = false;
       return;
     }
 
     if (!data.user) {
       authMessage.textContent = "Account could not be created.";
+      signupBtn.disabled = false;
+      loginBtn.disabled = false;
       return;
     }
 
-    // Try to create the player
-    const { error: playerError } =
-      await supabaseClient
-        .from("players")
-        .insert({
-          id: data.user.id,
-          username: username
-        });
+    /*
+      If Supabase automatically logged us in,
+      go straight into the game.
+    */
 
-    console.log("PLAYER:", playerError);
+    if (data.session) {
 
-    if (playerError) {
+      authMessage.textContent = "ACCOUNT CREATED!";
 
-      // Username may already exist
-      if (playerError.code === "23505") {
-        authMessage.textContent =
-          "That username is already taken.";
-        return;
-      }
+      showGame();
 
-      console.error(playerError);
-
-      authMessage.textContent =
-        "Account created, but player setup failed: " +
-        playerError.message;
+      signupBtn.disabled = false;
+      loginBtn.disabled = false;
 
       return;
     }
+
+    /*
+      If email confirmation is enabled,
+      Supabase will not give us a session yet.
+    */
 
     authMessage.textContent =
-      "ACCOUNT CREATED! Logging you in...";
-
-    // If Supabase returned a session, enter the game
-    if (data.session) {
-      showGame();
-    } else {
-      authMessage.textContent =
-        "Account created! If email confirmation is enabled in Supabase, confirm the email first.";
-    }
+      "ACCOUNT CREATED! Check your email to confirm it, then log in.";
 
   } catch (err) {
 
@@ -122,35 +107,40 @@ signupBtn.addEventListener("click", async () => {
 
     authMessage.textContent =
       "ERROR: " + err.message;
+
   }
+
+  signupBtn.disabled = false;
+  loginBtn.disabled = false;
+
 });
 
 
-// ===============================
-// LOG IN
-// ===============================
+/* =========================
+   LOG IN
+   ========================= */
 
 loginBtn.addEventListener("click", async () => {
-
-  console.log("LOGIN CLICKED");
 
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
 
   if (!username || !password) {
-    authMessage.textContent =
-      "Enter a username and password.";
+    authMessage.textContent = "Enter a username and password.";
     return;
   }
 
-  const email = username.toLowerCase() + "@linear.game";
+  loginBtn.disabled = true;
+  signupBtn.disabled = true;
 
   authMessage.textContent = "Logging in...";
+
+  const email = username.toLowerCase() + "@linear.game";
 
   try {
 
     const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
+      await supabase.auth.signInWithPassword({
         email: email,
         password: password
       });
@@ -158,8 +148,13 @@ loginBtn.addEventListener("click", async () => {
     console.log("LOGIN:", data, error);
 
     if (error) {
+
       authMessage.textContent =
         "ERROR: " + error.message;
+
+      loginBtn.disabled = false;
+      signupBtn.disabled = false;
+
       return;
     }
 
@@ -173,23 +168,29 @@ loginBtn.addEventListener("click", async () => {
 
     authMessage.textContent =
       "ERROR: " + err.message;
+
   }
+
+  loginBtn.disabled = false;
+  signupBtn.disabled = false;
+
 });
 
 
-// ===============================
-// CHECK EXISTING LOGIN
-// ===============================
+/* =========================
+   CHECK EXISTING LOGIN
+   ========================= */
 
 async function checkLogin() {
 
-  const { data } =
-    await supabaseClient.auth.getSession();
+  const { data } = await supabase.auth.getSession();
 
-  if (data.session) {
-    console.log("ALREADY LOGGED IN");
+  if (data && data.session) {
     showGame();
   }
+
 }
 
 checkLogin();
+
+console.log("LINEAR SUPABASE.JS LOADED");
