@@ -41,46 +41,54 @@ signupBtn.addEventListener("click", async () => {
 
   const email = username.toLowerCase() + "@linear.game";
 
-  const { data, error } = await supabase.auth.signUp({
-    email: email,
-    password: password
-  });
+  try {
 
-  console.log("SIGN UP:", data, error);
-
-  if (error) {
-    authMessage.textContent = "ERROR: " + error.message;
-    return;
-  }
-
-  if (!data.user) {
-    authMessage.textContent = "Account creation failed.";
-    return;
-  }
-
-  // Create player
-  const { error: playerError } = await supabase
-    .from("players")
-    .insert({
-      id: data.user.id,
-      username: username
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password
     });
 
-  if (playerError) {
-    console.error(playerError);
+    console.log("SIGNUP:", data, error);
 
-    authMessage.textContent =
-      "Account created, but player setup failed: " +
-      playerError.message;
+    if (error) {
+      authMessage.textContent = "ERROR: " + error.message;
+      return;
+    }
 
-    return;
+    if (!data.user) {
+      authMessage.textContent = "Account creation failed.";
+      return;
+    }
+
+    const { error: playerError } = await supabase
+      .from("players")
+      .insert({
+        id: data.user.id,
+        username: username
+      });
+
+    console.log("PLAYER:", playerError);
+
+    if (playerError) {
+      authMessage.textContent =
+        "Account created, but player setup failed: " +
+        playerError.message;
+      return;
+    }
+
+    authMessage.textContent = "ACCOUNT CREATED!";
+
+    if (data.session) {
+      showGame();
+    }
+
+  } catch (err) {
+
+    console.error(err);
+    authMessage.textContent = "ERROR: " + err.message;
+
   }
 
-  authMessage.textContent = "ACCOUNT CREATED!";
-
-  if (data.session) {
-    showGame();
-  }
 });
 
 
@@ -98,22 +106,32 @@ loginBtn.addEventListener("click", async () => {
 
   const email = username.toLowerCase() + "@linear.game";
 
-  const { data, error } =
-    await supabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
+  try {
 
-  console.log("LOGIN:", data, error);
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
 
-  if (error) {
-    authMessage.textContent = "ERROR: " + error.message;
-    return;
+    console.log("LOGIN:", data, error);
+
+    if (error) {
+      authMessage.textContent = "ERROR: " + error.message;
+      return;
+    }
+
+    authMessage.textContent = "LOGGED IN!";
+
+    showGame();
+
+  } catch (err) {
+
+    console.error(err);
+    authMessage.textContent = "ERROR: " + err.message;
+
   }
 
-  authMessage.textContent = "LOGGED IN!";
-
-  showGame();
 });
 
 
