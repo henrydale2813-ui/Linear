@@ -232,7 +232,7 @@
   // Admin
   document.getElementById('openAdmin')?.addEventListener('click', () => {
     const code = prompt('Enter admin password:');
-    if (code === 'UnlikeMe123#') {
+    if (code === 'AllMyDiddys123$') {
       const adminArea = document.getElementById('adminArea');
       if (adminArea) adminArea.style.display = 'block';
     } else {
