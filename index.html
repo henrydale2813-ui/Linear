@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Linear</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
       font-size: 28px;
       text-transform: uppercase;
       letter-spacing: 3px;
-      text-shadow: 3px 3px 0px #000, 6px 6px 0px #ff0000;
+      text-shadow: 3px 3px 0 #000, 6px 6px 0 #ff0000;
       margin: 10px 0;
     }
 
@@ -44,7 +44,7 @@
       cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 2px;
-      box-shadow: 3px 3px 0px #000;
+      box-shadow: 3px 3px 0 #000;
     }
 
     button:hover {
@@ -63,7 +63,7 @@
       border: 3px solid #fff;
       padding: 10px;
       margin: 10px 0;
-      box-shadow: 3px 3px 0px #000;
+      box-shadow: 3px 3px 0 #000;
       color: #fff;
       text-align: center;
     }
@@ -75,7 +75,7 @@
       padding: 15px;
       border: 3px solid #fff;
       margin: 20px auto;
-      box-shadow: 5px 5px 0px #000;
+      box-shadow: 5px 5px 0 #000;
       max-width: 900px;
     }
 
@@ -94,7 +94,7 @@
       border: 3px solid var(--accent);
       padding: 8px;
       margin-top: 10px;
-      box-shadow: 3px 3px 0px var(--accent);
+      box-shadow: 3px 3px 0 var(--accent);
     }
 
     #adminArea {
@@ -129,7 +129,7 @@
       font-size: 12px;
     }
 
-    /* LOGIN SCREEN */
+    /* LOGIN */
     #authScreen {
       max-width: 500px;
       margin: 100px auto;
@@ -273,11 +273,8 @@
     <div style="max-width:900px;margin:0 auto;">
 
       <button id="openAdmin">Admin</button>
-
       <button id="saveBtn">Save</button>
-
       <button id="loadBtn">Load</button>
-
       <button id="reportBug">Report a Bug</button>
 
       <div id="lastSaved" class="muted"></div>
@@ -310,11 +307,9 @@
     <!-- OWNED -->
 
     <h2>Owned Items</h2>
-
     <ul id="itemsList"></ul>
 
     <h2>Owned Pets</h2>
-
     <ul id="petsList"></ul>
 
 
@@ -365,39 +360,30 @@
 
   <script>
 
-    // Show the game after successful login
-    const originalLoginButton = document.getElementById("loginBtn");
+    async function showGameIfLoggedIn() {
 
-    originalLoginButton.addEventListener("click", async () => {
+      const { data, error } = await supabase.auth.getUser();
 
-      // Wait a moment for supabase.js to finish
-      setTimeout(async () => {
+      if (error) {
+        console.log("Auth check:", error.message);
+        return;
+      }
 
-        const {
-          data: { user }
-        } = await supabase.auth.getUser();
+      if (data.user) {
 
-        if (user) {
+        document.getElementById("authScreen").style.display = "none";
 
-          document.getElementById("authScreen").style.display = "none";
+        document.getElementById("gameScreen").style.display = "block";
 
-          document.getElementById("gameScreen").style.display = "block";
-
-        }
-
-      }, 500);
-
-    });
+      }
+    }
 
 
-    // Also check if the player is already logged in
-    async function checkLogin() {
+    supabase.auth.onAuthStateChange((event, session) => {
 
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
+      console.log("Auth event:", event);
 
-      if (user) {
+      if (session) {
 
         document.getElementById("authScreen").style.display = "none";
 
@@ -405,14 +391,12 @@
 
       }
 
-    }
+    });
 
-    checkLogin();
+
+    showGameIfLoggedIn();
 
   </script>
 
 </body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/game.js"></script>
 </html>
