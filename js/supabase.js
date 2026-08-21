@@ -3,7 +3,7 @@ console.log("SUPABASE.JS LOADED");
 const SUPABASE_URL = "https://mvimkvyyycfsyvwsqrvr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_IXxv555lJWj6CnGRITlDiw_U1K06ahG";
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
@@ -19,7 +19,7 @@ const authMessage = document.getElementById("authMessage");
 console.log("SIGNUP BUTTON:", signupBtn);
 console.log("LOGIN BUTTON:", loginBtn);
 
-signupBtn.addEventListener("click", async function () {
+signupBtn.addEventListener("click", async () => {
 
   console.log("CREATE ACCOUNT CLICKED");
 
@@ -49,7 +49,7 @@ signupBtn.addEventListener("click", async function () {
 
   try {
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
       email: email,
       password: password
     });
@@ -66,7 +66,7 @@ signupBtn.addEventListener("click", async function () {
       return;
     }
 
-    const { error: playerError } = await supabase
+    const { error: playerError } = await supabaseClient
       .from("players")
       .insert({
         id: data.user.id,
@@ -97,7 +97,7 @@ signupBtn.addEventListener("click", async function () {
 });
 
 
-loginBtn.addEventListener("click", async function () {
+loginBtn.addEventListener("click", async () => {
 
   console.log("LOGIN CLICKED");
 
@@ -116,7 +116,7 @@ loginBtn.addEventListener("click", async function () {
   try {
 
     const { data, error } =
-      await supabase.auth.signInWithPassword({
+      await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
       });
