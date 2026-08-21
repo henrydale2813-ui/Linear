@@ -16,8 +16,6 @@ const signupBtn = document.getElementById("signupBtn");
 const loginBtn = document.getElementById("loginBtn");
 const authMessage = document.getElementById("authMessage");
 
-console.log("BUTTON:", signupBtn);
-
 signupBtn.addEventListener("click", async () => {
   console.log("CREATE ACCOUNT CLICKED");
 
@@ -67,6 +65,8 @@ signupBtn.addEventListener("click", async () => {
         id: data.user.id,
         username: username
       });
+
+    console.log("PLAYER RESULT:", playerError);
 
     if (playerError) {
       authMessage.textContent =
