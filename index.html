@@ -155,6 +155,7 @@ document.getElementById('reportBug').onclick = ()=>{ const msg = prompt('Describ
 
 function saveGame(){ const data = { money, autoIncome, multiplier, tickInterval, itemsOwned, petsOwned, currentItemSlots, currentPetSlots, boostActiveUntil }; localStorage.setItem('linear_save', JSON.stringify(data)); const lastSavedEl = document.getElementById('lastSaved'); if(lastSavedEl) lastSavedEl.textContent = 'Saved at ' + new Date().toLocaleTimeString(); showNotification('Game saved'); }
 function loadGame(){ const raw = localStorage.getItem('linear_save'); if(!raw) return alert('No save found'); try{ const data = JSON.parse(raw); money = Number(data.money) || money; autoIncome = Number(data.autoIncome) || autoIncome; multiplier = Number(data.multiplier) || multiplier; tickInterval = Number(data.tickInterval) || tickInterval; itemsOwned = data.itemsOwned || []; petsOwned = data.petsOwned || []; currentItemSlots = data.currentItemSlots || []; currentPetSlots = data.currentPetSlots || []; boostActiveUntil = data.boostActiveUntil || null; renderItemsOwned(); renderPetsOwned(); renderShops(); updateDisplay(); showNotification('Game loaded'); }catch(e){ alert('Failed to load save: ' + e.message); } }
+
 document.getElementById('saveBtn').onclick = saveGame; document.getElementById('loadBtn').onclick = loadGame;
 
 document.getElementById('playMusicBtn').onclick = ()=>{ const player = document.getElementById('spotifyPlayer'); if(player) player.style.display = 'block'; showNotification('Scroll down and press Play in Spotify player!'); };
