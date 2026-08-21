@@ -5,7 +5,7 @@
 const SUPABASE_URL = "https://mvimkvyyycfsyvwsqrvr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_IXxv555lJWj6CnGRITlDiw_U1K06ahG";
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
@@ -17,9 +17,14 @@ const passwordInput = document.getElementById("passwordInput");
 const signupBtn = document.getElementById("signupBtn");
 const loginBtn = document.getElementById("loginBtn");
 const authMessage = document.getElementById("authMessage");
-const authScreen = document.getElementById("authScreen");
-const gameScreen = document.getElementById("gameScreen");
 
+function showGame() {
+  const authScreen = document.getElementById("authScreen");
+  const gameScreen = document.getElementById("gameScreen");
+
+  if (authScreen) authScreen.style.display = "none";
+  if (gameScreen) gameScreen.style.display = "block";
+}
 
 // ===============================
 // CREATE ACCOUNT
@@ -51,55 +56,73 @@ signupBtn.addEventListener("click", async () => {
 
   authMessage.textContent = "Creating account...";
 
-  console.log("Signing up:", email);
+  try {
 
-  const { data, error } = await supabase.auth.signUp({
-    email: email,
-    password: password
-  });
+    const { data, error } =
+      await supabaseClient.auth.signUp({
+        email: email,
+        password: password
+      });
 
-  console.log("SIGNUP RESULT:", data, error);
+    console.log("SIGNUP:", data, error);
 
-  if (error) {
-    authMessage.textContent = "ERROR: " + error.message;
-    return;
-  }
+    if (error) {
+      authMessage.textContent = "ERROR: " + error.message;
+      return;
+    }
 
-  if (!data.user) {
-    authMessage.textContent = "Account creation failed.";
-    return;
-  }
+    if (!data.user) {
+      authMessage.textContent = "Account could not be created.";
+      return;
+    }
 
-  // Create player record
-  const { error: playerError } = await supabase
-    .from("players")
-    .insert({
-      id: data.user.id,
-      username: username
-    });
+    // Try to create the player
+    const { error: playerError } =
+      await supabaseClient
+        .from("players")
+        .insert({
+          id: data.user.id,
+          username: username
+        });
 
-  console.log("PLAYER RESULT:", playerError);
+    console.log("PLAYER:", playerError);
 
-  if (playerError) {
+    if (playerError) {
+
+      // Username may already exist
+      if (playerError.code === "23505") {
+        authMessage.textContent =
+          "That username is already taken.";
+        return;
+      }
+
+      console.error(playerError);
+
+      authMessage.textContent =
+        "Account created, but player setup failed: " +
+        playerError.message;
+
+      return;
+    }
+
     authMessage.textContent =
-      "Account created, but player setup failed: " +
-      playerError.message;
+      "ACCOUNT CREATED! Logging you in...";
 
-    return;
-  }
+    // If Supabase returned a session, enter the game
+    if (data.session) {
+      showGame();
+    } else {
+      authMessage.textContent =
+        "Account created! If email confirmation is enabled in Supabase, confirm the email first.";
+    }
 
-  authMessage.textContent = "ACCOUNT CREATED!";
+  } catch (err) {
 
-  // If Supabase automatically logged them in,
-  // immediately open the game.
-  if (data.session) {
-    authScreen.style.display = "none";
-    gameScreen.style.display = "block";
-  } else {
+    console.error(err);
+
     authMessage.textContent =
-      "ACCOUNT CREATED! You can now log in.";
+      "ERROR: " + err.message;
   }
-
 });
 
 
@@ -115,7 +138,8 @@ loginBtn.addEventListener("click", async () => {
   const password = passwordInput.value;
 
   if (!username || !password) {
-    authMessage.textContent = "Enter a username and password.";
+    authMessage.textContent =
+      "Enter a username and password.";
     return;
   }
 
@@ -123,24 +147,33 @@ loginBtn.addEventListener("click", async () => {
 
   authMessage.textContent = "Logging in...";
 
-  const { data, error } =
-    await supabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
+  try {
 
-  console.log("LOGIN RESULT:", data, error);
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
 
-  if (error) {
-    authMessage.textContent = "ERROR: " + error.message;
-    return;
+    console.log("LOGIN:", data, error);
+
+    if (error) {
+      authMessage.textContent =
+        "ERROR: " + error.message;
+      return;
+    }
+
+    authMessage.textContent = "LOGGED IN!";
+
+    showGame();
+
+  } catch (err) {
+
+    console.error(err);
+
+    authMessage.textContent =
+      "ERROR: " + err.message;
   }
-
-  authMessage.textContent = "LOGGED IN!";
-
-  authScreen.style.display = "none";
-  gameScreen.style.display = "block";
-
 });
 
 
@@ -150,17 +183,13 @@ loginBtn.addEventListener("click", async () => {
 
 async function checkLogin() {
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { data } =
+    await supabaseClient.auth.getSession();
 
-  if (user) {
+  if (data.session) {
     console.log("ALREADY LOGGED IN");
-
-    authScreen.style.display = "none";
-    gameScreen.style.display = "block";
+    showGame();
   }
-
 }
 
 checkLogin();
