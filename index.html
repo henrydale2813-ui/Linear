@@ -34,6 +34,10 @@
       margin: 10px 0;
     }
 
+    h2 {
+      text-shadow: 2px 2px #000;
+    }
+
     button {
       font-family: 'Press Start 2P', cursive;
       background: #111;
@@ -58,6 +62,11 @@
       box-shadow: none;
     }
 
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .slot {
       background: #222;
       border: 3px solid #fff;
@@ -71,7 +80,7 @@
     #itemSlots,
     #petSlots,
     #boostShop {
-      background: rgba(0,0,0,0.6);
+      background: rgba(0, 0, 0, 0.6);
       padding: 15px;
       border: 3px solid #fff;
       margin: 20px auto;
@@ -129,11 +138,14 @@
       font-size: 12px;
     }
 
-    /* LOGIN */
+    /* =========================
+       LOGIN SCREEN
+       ========================= */
+
     #authScreen {
       max-width: 500px;
       margin: 100px auto;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0, 0, 0, 0.7);
       border: 3px solid #fff;
       padding: 30px;
       box-shadow: 6px 6px 0 #000;
@@ -152,14 +164,16 @@
     #authMessage {
       margin-top: 15px;
       min-height: 20px;
+      line-height: 1.6;
     }
 
     /* GAME HIDDEN UNTIL LOGIN */
+
     #gameScreen {
       display: none;
     }
 
-    @media (max-width:600px) {
+    @media (max-width: 600px) {
       body {
         padding: 10px;
       }
@@ -167,13 +181,20 @@
       h1 {
         font-size: 18px;
       }
+
+      #authScreen {
+        margin: 50px auto;
+        padding: 20px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- ================= LOGIN ================= -->
+  <!-- =====================================
+       LOGIN / CREATE ACCOUNT
+       ===================================== -->
 
   <div id="authScreen">
 
@@ -193,15 +214,22 @@
       autocomplete="current-password"
     >
 
-    <button id="signupBtn">Create Account</button>
-    <button id="loginBtn">Log In</button>
+    <button id="signupBtn">
+      Create Account
+    </button>
+
+    <button id="loginBtn">
+      Log In
+    </button>
 
     <p id="authMessage"></p>
 
   </div>
 
 
-  <!-- ================= GAME ================= -->
+  <!-- =====================================
+       GAME
+       ===================================== -->
 
   <div id="gameScreen">
 
@@ -226,7 +254,9 @@
     </div>
 
 
-    <!-- MUSIC -->
+    <!-- =====================================
+         MUSIC
+         ===================================== -->
 
     <div style="max-width:900px;margin:10px auto;">
 
@@ -248,10 +278,13 @@
         </iframe>
 
       </div>
+
     </div>
 
 
-    <!-- BOOST SHOP -->
+    <!-- =====================================
+         BOOST SHOP
+         ===================================== -->
 
     <div id="boostShop">
 
@@ -268,52 +301,82 @@
     </div>
 
 
-    <!-- BUTTONS -->
+    <!-- =====================================
+         BUTTONS
+         ===================================== -->
 
     <div style="max-width:900px;margin:0 auto;">
 
-      <button id="openAdmin">Admin</button>
-      <button id="saveBtn">Save</button>
-      <button id="loadBtn">Load</button>
-      <button id="reportBug">Report a Bug</button>
+      <button id="openAdmin">
+        Admin
+      </button>
+
+      <button id="saveBtn">
+        Save
+      </button>
+
+      <button id="loadBtn">
+        Load
+      </button>
+
+      <button id="reportBug">
+        Report a Bug
+      </button>
 
       <div id="lastSaved" class="muted"></div>
 
     </div>
 
 
-    <!-- ITEMS -->
+    <!-- =====================================
+         ITEM SHOP
+         ===================================== -->
 
     <h2>Shop - Items</h2>
 
     <div class="timer">
-      Refresh in <span id="itemTimer">120</span>s
+      Refresh in
+      <span id="itemTimer">120</span>s
     </div>
 
     <div id="itemSlots"></div>
 
 
-    <!-- PETS -->
+    <!-- =====================================
+         PET SHOP
+         ===================================== -->
 
     <h2>Shop - Pets</h2>
 
     <div class="timer">
-      Refresh in <span id="petTimer">120</span>s
+      Refresh in
+      <span id="petTimer">120</span>s
     </div>
 
     <div id="petSlots"></div>
 
 
-    <!-- OWNED -->
+    <!-- =====================================
+         OWNED ITEMS
+         ===================================== -->
 
     <h2>Owned Items</h2>
+
     <ul id="itemsList"></ul>
 
+
+    <!-- =====================================
+         OWNED PETS
+         ===================================== -->
+
     <h2>Owned Pets</h2>
+
     <ul id="petsList"></ul>
 
 
-    <!-- ADMIN -->
+    <!-- =====================================
+         ADMIN
+         ===================================== -->
 
     <div id="adminArea">
 
@@ -324,7 +387,9 @@
         placeholder="Enter command"
       >
 
-      <button id="runAdmin">Run</button>
+      <button id="runAdmin">
+        Run
+      </button>
 
       <p class="muted">
         Commands:
@@ -336,7 +401,9 @@
     </div>
 
 
-    <!-- NOTIFICATIONS -->
+    <!-- =====================================
+         NOTIFICATIONS
+         ===================================== -->
 
     <div
       id="notifications"
@@ -347,56 +414,18 @@
   </div>
 
 
-  <!-- ================= SUPABASE ================= -->
+  <!-- =====================================
+       SUPABASE
+       ===================================== -->
 
+  <!-- 1. Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- 2. Your Supabase login code -->
   <script src="js/supabase.js"></script>
 
+  <!-- 3. Your Linear game code -->
   <script src="js/game.js"></script>
-
-
-  <!-- ================= LOGIN → GAME ================= -->
-
-  <script>
-
-    async function showGameIfLoggedIn() {
-
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error) {
-        console.log("Auth check:", error.message);
-        return;
-      }
-
-      if (data.user) {
-
-        document.getElementById("authScreen").style.display = "none";
-
-        document.getElementById("gameScreen").style.display = "block";
-
-      }
-    }
-
-
-    supabase.auth.onAuthStateChange((event, session) => {
-
-      console.log("Auth event:", event);
-
-      if (session) {
-
-        document.getElementById("authScreen").style.display = "none";
-
-        document.getElementById("gameScreen").style.display = "block";
-
-      }
-
-    });
-
-
-    showGameIfLoggedIn();
-
-  </script>
 
 </body>
 </html>
