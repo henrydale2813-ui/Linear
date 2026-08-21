@@ -90,3 +90,4 @@ loginBtn.addEventListener("click", async () => {
 
   authMessage.textContent = "Logged in!";
 });
+console.log("LINEAR SUPABASE FILE LOADED");
