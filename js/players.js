@@ -430,12 +430,20 @@ if (refreshPlayersBtn) {
 // START
 // =========================
 
-updateTradeOnlineStatus();
+async function startOnlineStatus() {
 
-setInterval(
-  updateTradeOnlineStatus,
-  30000
-);
+  await updateTradeOnlineStatus();
+
+  setInterval(
+    async () => {
+      await updateTradeOnlineStatus();
+    },
+    30000
+  );
+
+}
+
+startOnlineStatus();
 
 setInterval(
   checkTradeRequests,
