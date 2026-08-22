@@ -401,3 +401,117 @@ setInterval(
 console.log(
   "PLAYERS.JS READY"
 );
+// =========================
+// INCOMING TRADE REQUESTS
+// =========================
+
+async function checkTradeRequests() {
+
+  const user = await getPlayerUser();
+
+  if (!user) return;
+
+  const { data, error } = await supabaseClient
+    .from("trade_requests")
+    .select(`
+      id,
+      sender_id,
+      created_at,
+      players!trade_requests_sender_id_fkey (
+        username
+      )
+    `)
+    .eq("receiver_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (error) {
+
+    console.error(
+      "TRADE REQUEST CHECK ERROR:",
+      error
+    );
+
+    return;
+  }
+
+  if (!data || data.length === 0) return;
+
+  data.forEach(request => {
+
+    const senderName =
+      request.players?.username ||
+      "A player";
+
+    const accept =
+      confirm(
+        senderName +
+        " wants to trade with you!\n\n" +
+        "Press OK to accept or Cancel to decline."
+      );
+
+    respondToTradeRequest(
+      request.id,
+      accept
+    );
+
+  });
+
+}
+
+
+async function respondToTradeRequest(
+  requestId,
+  accepted
+) {
+
+  const newStatus =
+    accepted
+      ? "accepted"
+      : "declined";
+
+  const { error } =
+    await supabaseClient
+      .from("trade_requests")
+      .update({
+        status: newStatus
+      })
+      .eq("id", requestId);
+
+  if (error) {
+
+    console.error(
+      "TRADE RESPONSE ERROR:",
+      error
+    );
+
+    return;
+  }
+
+  if (accepted) {
+
+    alert(
+      "Trade accepted! We'll build the trade window next."
+    );
+
+  } else {
+
+    alert(
+      "Trade request declined."
+    );
+
+  }
+
+}
+
+
+// Check for requests every 3 seconds
+
+setInterval(
+  checkTradeRequests,
+  3000
+);
+
+checkTradeRequests();
