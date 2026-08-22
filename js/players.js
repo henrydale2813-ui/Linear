@@ -206,7 +206,78 @@ async function loadPlayers() {
 // SEND TRADE REQUEST
 // =========================
 
-async function sendTradeRequest(
+async function checkTradeRequests() {
+
+  const user = await getPlayerUser();
+
+  if (!user) return;
+
+  // Get pending requests sent to this player
+  const {
+    data: requests,
+    error
+  } = await supabaseClient
+    .from("trade_requests")
+    .select("id, sender_id, created_at")
+    .eq("receiver_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (error) {
+
+    console.error(
+      "TRADE REQUEST CHECK ERROR:",
+      error
+    );
+
+    return;
+  }
+
+  if (!requests || requests.length === 0) {
+    return;
+  }
+
+  // Show each request
+  for (const request of requests) {
+
+    // Get the sender's username separately
+    const {
+      data: sender,
+      error: senderError
+    } = await supabaseClient
+      .from("players")
+      .select("username")
+      .eq("id", request.sender_id)
+      .maybeSingle();
+
+    if (senderError) {
+
+      console.error(
+        "SENDER LOOKUP ERROR:",
+        senderError
+      );
+
+      continue;
+    }
+
+    const senderName =
+      sender?.username || "A player";
+
+    const accepted = confirm(
+      senderName +
+      " wants to trade with you!\n\n" +
+      "OK = Accept\n" +
+      "Cancel = Decline"
+    );
+
+    await respondToTradeRequest(
+      request.id,
+      accepted
+    );
+  }
+}
   receiverId,
   receiverName
 ) {
