@@ -1,4 +1,4 @@
-console.log("PLAYERS.JS V3 LOADED");
+console.log("PLAYERS.JS V4 LOADED");
 
 const playersBtn = document.getElementById("playersBtn");
 const playersPanel = document.getElementById("playersPanel");
@@ -7,7 +7,7 @@ const refreshPlayersBtn = document.getElementById("refreshPlayersBtn");
 
 
 // =========================
-// GET USER
+// GET CURRENT USER
 // =========================
 
 async function getTradeUser() {
@@ -89,7 +89,8 @@ async function loadPlayers() {
     return;
   }
 
-  const now = Date.now();
+  const now =
+    Date.now();
 
   others.forEach(player => {
 
@@ -111,7 +112,7 @@ async function loadPlayers() {
         : 0;
 
     const online =
-      lastSeen &&
+      lastSeen > 0 &&
       now - lastSeen < 300000;
 
     const name =
@@ -177,6 +178,15 @@ async function sendTradeRequest(
 
   if (!user) return;
 
+  if (user.id === receiverId) {
+
+    alert(
+      "You cannot trade with yourself."
+    );
+
+    return;
+  }
+
   const result =
     await supabaseClient
       .from("trade_requests")
@@ -203,7 +213,8 @@ async function sendTradeRequest(
 
   alert(
     "Trade request sent to " +
-    receiverName + "!"
+    receiverName +
+    "!"
   );
 
 }
@@ -214,84 +225,6 @@ async function sendTradeRequest(
 // =========================
 
 async function checkTradeRequests() {
-
-  const user = await getTradeUser();
-
-  if (!user) return;
-
-  const result = await supabaseClient
-    .from("trade_requests")
-    .select("id, sender_id, created_at")
-    .eq("receiver_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", {
-      ascending: false
-    });
-
-  if (result.error) {
-    console.error(
-      "TRADE REQUEST ERROR:",
-      result.error
-    );
-    return;
-  }
-
-  if (!result.data || result.data.length === 0) {
-    return;
-  }
-
-  window.seenTradeRequests =
-    window.seenTradeRequests || new Set();
-
-  for (const request of result.data) {
-
-    if (
-      window.seenTradeRequests.has(request.id)
-    ) {
-      continue;
-    }
-
-    window.seenTradeRequests.add(request.id);
-
-    const senderResult =
-      await supabaseClient
-        .from("players")
-        .select("username")
-        .eq("id", request.sender_id)
-        .maybeSingle();
-
-    const senderName =
-      senderResult.data?.username ||
-      "A player";
-
-    const accepted = confirm(
-      senderName +
-      " wants to trade with you!\n\n" +
-      "OK = Accept\n" +
-      "Cancel = Decline"
-    );
-
-    const newStatus =
-      accepted
-        ? "accepted"
-        : "declined";
-
-    const updateResult =
-      await supabaseClient
-        .from("trade_requests")
-        .update({
-          status: newStatus
-        })
-        .eq("id", request.id);
-
-    if (updateResult.error) {
-      console.error(
-        "TRADE RESPONSE ERROR:",
-        updateResult.error
-      );
-    }
-  }
-}
 
   const user =
     await getTradeUser();
@@ -311,6 +244,12 @@ async function checkTradeRequests() {
       .eq(
         "status",
         "pending"
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
       );
 
   if (result.error) {
@@ -323,11 +262,35 @@ async function checkTradeRequests() {
     return;
   }
 
-  if (!result.data.length) return;
+  if (
+    !result.data ||
+    result.data.length === 0
+  ) {
+
+    return;
+  }
+
+  window.seenTradeRequests =
+    window.seenTradeRequests ||
+    new Set();
 
   for (
     const request of result.data
   ) {
+
+    if (
+      window.seenTradeRequests.has(
+        request.id
+      )
+    ) {
+
+      continue;
+
+    }
+
+    window.seenTradeRequests.add(
+      request.id
+    );
 
     const senderResult =
       await supabaseClient
@@ -351,18 +314,30 @@ async function checkTradeRequests() {
         "Cancel = Decline"
       );
 
-    await supabaseClient
-      .from("trade_requests")
-      .update({
-        status:
-          accepted
-            ? "accepted"
-            : "declined"
-      })
-      .eq(
-        "id",
-        request.id
+    const newStatus =
+      accepted
+        ? "accepted"
+        : "declined";
+
+    const updateResult =
+      await supabaseClient
+        .from("trade_requests")
+        .update({
+          status: newStatus
+        })
+        .eq(
+          "id",
+          request.id
+        );
+
+    if (updateResult.error) {
+
+      console.error(
+        "TRADE RESPONSE ERROR:",
+        updateResult.error
       );
+
+    }
 
   }
 
@@ -438,7 +413,7 @@ if (playersBtn) {
 
 
 // =========================
-// REFRESH
+// REFRESH BUTTON
 // =========================
 
 if (refreshPlayersBtn) {
@@ -470,5 +445,5 @@ setInterval(
 checkTradeRequests();
 
 console.log(
-  "PLAYERS.JS V3 READY"
+  "PLAYERS.JS V4 READY"
 );
