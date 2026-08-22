@@ -1,8 +1,4 @@
-// =========================
-// LINEAR PLAYERS + TRADING
-// =========================
-
-console.log("PLAYERS.JS LOADED V2");
+console.log("PLAYERS.JS V3 LOADED");
 
 const playersBtn = document.getElementById("playersBtn");
 const playersPanel = document.getElementById("playersPanel");
@@ -11,55 +7,25 @@ const refreshPlayersBtn = document.getElementById("refreshPlayersBtn");
 
 
 // =========================
-// GET CURRENT USER
+// GET USER
 // =========================
 
-async function getPlayerUser() {
+async function getTradeUser() {
 
-  const { data, error } =
+  const result =
     await supabaseClient.auth.getUser();
 
-  if (error) {
+  if (result.error) {
 
     console.error(
-      "GET USER ERROR:",
-      error
+      "USER ERROR:",
+      result.error
     );
 
     return null;
   }
 
-  return data.user;
-}
-
-
-// =========================
-// UPDATE LAST SEEN
-// =========================
-
-async function updateLastSeen() {
-
-  const user = await getPlayerUser();
-
-  if (!user) return;
-
-  const { error } =
-    await supabaseClient
-      .from("players")
-      .update({
-        last_seen:
-          new Date().toISOString()
-      })
-      .eq("id", user.id);
-
-  if (error) {
-
-    console.error(
-      "LAST SEEN ERROR:",
-      error
-    );
-
-  }
+  return result.data.user;
 }
 
 
@@ -75,67 +41,67 @@ async function loadPlayers() {
     "Loading players...";
 
   const user =
-    await getPlayerUser();
+    await getTradeUser();
 
   if (!user) {
 
     playersList.textContent =
-      "You are not logged in.";
+      "Not logged in.";
 
     return;
   }
 
-  const { data, error } =
+  const result =
     await supabaseClient
       .from("players")
-      .select(
-        "id, username, last_seen"
-      )
-      .order(
-        "last_seen",
-        {
-          ascending: false
-        }
-      );
+      .select("id, username, last_seen")
+      .order("last_seen", {
+        ascending: false
+      });
 
-  if (error) {
+  if (result.error) {
 
     console.error(
-      "PLAYERS LOAD ERROR:",
-      error
+      "PLAYERS ERROR:",
+      result.error
     );
 
     playersList.textContent =
-      "ERROR: " + error.message;
+      "ERROR: " +
+      result.error.message;
 
     return;
   }
 
   playersList.innerHTML = "";
 
-  const otherPlayers =
-    data.filter(
+  const others =
+    result.data.filter(
       player =>
         player.id !== user.id
     );
 
-  if (otherPlayers.length === 0) {
+  if (others.length === 0) {
 
-    playersList.innerHTML =
-      "<p>No other players yet.</p>";
+    playersList.textContent =
+      "No other players.";
 
     return;
   }
 
   const now = Date.now();
 
-  otherPlayers.forEach(player => {
+  others.forEach(player => {
 
     const card =
       document.createElement("div");
 
-    card.className =
-      "playerCard";
+    card.style.cssText = `
+      background:#222;
+      border:2px solid #fff;
+      padding:12px;
+      margin:10px 0;
+    `;
 
     const lastSeen =
       player.last_seen
@@ -146,58 +112,53 @@ async function loadPlayers() {
 
     const online =
       lastSeen &&
-      now - lastSeen < 60000;
+      now - lastSeen < 300000;
 
-    card.innerHTML = `
-      <strong>
-        ${online ? "🟢" : "⚫"}
-        ${escapePlayerName(
+    const name =
+      document.createElement("strong");
+
+    name.textContent =
+      (online ? "🟢 " : "⚫ ") +
+      (player.username || "Unknown");
+
+    card.appendChild(name);
+
+    const status =
+      document.createElement("span");
+
+    status.textContent =
+      online
+        ? " ONLINE"
+        : " OFFLINE";
+
+    card.appendChild(status);
+
+    const trade =
+      document.createElement("button");
+
+    trade.textContent =
+      "TRADE";
+
+    trade.style.marginLeft =
+      "15px";
+
+    trade.addEventListener(
+      "click",
+      () => {
+
+        sendTradeRequest(
+          player.id,
           player.username
-        )}
-      </strong>
+        );
 
-      <span class="${
-        online
-          ? "playerOnline"
-          : "playerOffline"
-      }">
-        ${online ? " ONLINE" : " OFFLINE"}
-      </span>
+      }
+    );
 
-      <button
-        class="tradeButton"
-        data-player-id="${player.id}"
-        data-player-name="${escapePlayerName(
-          player.username
-        )}"
-      >
-        TRADE
-      </button>
-    `;
+    card.appendChild(trade);
 
     playersList.appendChild(card);
 
   });
-
-  // Add trade button listeners
-
-  document
-    .querySelectorAll(".tradeButton")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          sendTradeRequest(
-            button.dataset.playerId,
-            button.dataset.playerName
-          );
-
-        }
-      );
-
-    });
 
 }
 
@@ -206,173 +167,35 @@ async function loadPlayers() {
 // SEND TRADE REQUEST
 // =========================
 
-async function checkTradeRequests() {
-
-  const user = await getPlayerUser();
-
-  if (!user) return;
-
-  // Get pending requests sent to this player
-  const {
-    data: requests,
-    error
-  } = await supabaseClient
-    .from("trade_requests")
-    .select("id, sender_id, created_at")
-    .eq("receiver_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", {
-      ascending: false
-    });
-
-  if (error) {
-
-    console.error(
-      "TRADE REQUEST CHECK ERROR:",
-      error
-    );
-
-    return;
-  }
-
-  if (!requests || requests.length === 0) {
-    return;
-  }
-
-  // Show each request
-  for (const request of requests) {
-
-    // Get the sender's username separately
-    const {
-      data: sender,
-      error: senderError
-    } = await supabaseClient
-      .from("players")
-      .select("username")
-      .eq("id", request.sender_id)
-      .maybeSingle();
-
-    if (senderError) {
-
-      console.error(
-        "SENDER LOOKUP ERROR:",
-        senderError
-      );
-
-      continue;
-    }
-
-    const senderName =
-      sender?.username || "A player";
-
-    const accepted = confirm(
-      senderName +
-      " wants to trade with you!\n\n" +
-      "OK = Accept\n" +
-      "Cancel = Decline"
-    );
-
-    await respondToTradeRequest(
-      request.id,
-      accepted
-    );
-  }
-}
+async function sendTradeRequest(
   receiverId,
   receiverName
 ) {
 
   const user =
-    await getPlayerUser();
+    await getTradeUser();
 
-  if (!user) {
+  if (!user) return;
 
-    alert(
-      "You are not logged in."
-    );
-
-    return;
-  }
-
-  if (
-    receiverId === user.id
-  ) {
-
-    return;
-  }
-
-  // Check for existing pending request
-
-  const {
-    data: existing,
-    error: checkError
-  } =
-    await supabaseClient
-      .from("trade_requests")
-      .select("id")
-      .eq("sender_id", user.id)
-      .eq(
-        "receiver_id",
-        receiverId
-      )
-      .eq(
-        "status",
-        "pending"
-      )
-      .maybeSingle();
-
-  if (checkError) {
-
-    console.error(
-      "TRADE CHECK ERROR:",
-      checkError
-    );
-
-    alert(
-      "Could not check trade request."
-    );
-
-    return;
-  }
-
-  if (existing) {
-
-    alert(
-      "You already sent a trade request to " +
-      receiverName
-    );
-
-    return;
-  }
-
-  const {
-    error
-  } =
+  const result =
     await supabaseClient
       .from("trade_requests")
       .insert({
-
-        sender_id:
-          user.id,
-
-        receiver_id:
-          receiverId,
-
-        status:
-          "pending"
-
+        sender_id: user.id,
+        receiver_id: receiverId,
+        status: "pending"
       });
 
-  if (error) {
+  if (result.error) {
 
     console.error(
-      "TRADE REQUEST ERROR:",
-      error
+      "TRADE SEND ERROR:",
+      result.error
     );
 
     alert(
-      "Trade request failed: " +
-      error.message
+      "Trade failed: " +
+      result.error.message
     );
 
     return;
@@ -387,20 +210,119 @@ async function checkTradeRequests() {
 
 
 // =========================
-// ESCAPE USERNAME
+// CHECK TRADE REQUESTS
 // =========================
 
-function escapePlayerName(
-  name
-) {
+async function checkTradeRequests() {
 
-  const div =
-    document.createElement("div");
+  const user =
+    await getTradeUser();
 
-  div.textContent =
-    name || "Unknown";
+  if (!user) return;
 
-  return div.innerHTML;
+  const result =
+    await supabaseClient
+      .from("trade_requests")
+      .select(
+        "id, sender_id, created_at"
+      )
+      .eq(
+        "receiver_id",
+        user.id
+      )
+      .eq(
+        "status",
+        "pending"
+      );
+
+  if (result.error) {
+
+    console.error(
+      "TRADE REQUEST ERROR:",
+      result.error
+    );
+
+    return;
+  }
+
+  if (!result.data.length) return;
+
+  for (
+    const request of result.data
+  ) {
+
+    const senderResult =
+      await supabaseClient
+        .from("players")
+        .select("username")
+        .eq(
+          "id",
+          request.sender_id
+        )
+        .maybeSingle();
+
+    const senderName =
+      senderResult.data?.username ||
+      "A player";
+
+    const accepted =
+      confirm(
+        senderName +
+        " wants to trade with you!\n\n" +
+        "OK = Accept\n" +
+        "Cancel = Decline"
+      );
+
+    await supabaseClient
+      .from("trade_requests")
+      .update({
+        status:
+          accepted
+            ? "accepted"
+            : "declined"
+      })
+      .eq(
+        "id",
+        request.id
+      );
+
+  }
+
+}
+
+
+// =========================
+// UPDATE ONLINE STATUS
+// =========================
+
+async function updateTradeOnlineStatus() {
+
+  const user =
+    await getTradeUser();
+
+  if (!user) return;
+
+  const result =
+    await supabaseClient
+      .from("players")
+      .update({
+        last_seen:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        user.id
+      );
+
+  if (result.error) {
+
+    console.error(
+      "ONLINE STATUS ERROR:",
+      result.error
+    );
+
+  }
+
 }
 
 
@@ -414,26 +336,20 @@ if (playersBtn) {
     "click",
     async () => {
 
-      console.log(
-        "PLAYERS BUTTON CLICKED"
-      );
-
       if (
         playersPanel.style.display ===
-          "none" ||
-        playersPanel.style.display ===
-          ""
+        "block"
       ) {
+
+        playersPanel.style.display =
+          "none";
+
+      } else {
 
         playersPanel.style.display =
           "block";
 
         await loadPlayers();
-
-      } else {
-
-        playersPanel.style.display =
-          "none";
 
       }
 
@@ -444,7 +360,7 @@ if (playersBtn) {
 
 
 // =========================
-// REFRESH BUTTON
+// REFRESH
 // =========================
 
 if (refreshPlayersBtn) {
@@ -458,126 +374,15 @@ if (refreshPlayersBtn) {
 
 
 // =========================
-// ONLINE STATUS
+// START
 // =========================
 
-updateLastSeen();
+updateTradeOnlineStatus();
 
 setInterval(
-  updateLastSeen,
+  updateTradeOnlineStatus,
   30000
 );
-
-
-console.log(
-  "PLAYERS.JS READY"
-);
-// =========================
-// INCOMING TRADE REQUESTS
-// =========================
-
-async function checkTradeRequests() {
-
-  const user = await getPlayerUser();
-
-  if (!user) return;
-
-  const { data, error } = await supabaseClient
-    .from("trade_requests")
-    .select(`
-      id,
-      sender_id,
-      created_at,
-        username
-      )
-    `)
-    .eq("receiver_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", {
-      ascending: false
-    });
-
-  if (error) {
-
-    console.error(
-      "TRADE REQUEST CHECK ERROR:",
-      error
-    );
-
-    return;
-  }
-
-  if (!data || data.length === 0) return;
-
-  data.forEach(request => {
-
-    const senderName =
-      request.players?.username ||
-      "A player";
-
-    const accept =
-      confirm(
-        senderName +
-        " wants to trade with you!\n\n" +
-        "Press OK to accept or Cancel to decline."
-      );
-
-    respondToTradeRequest(
-      request.id,
-      accept
-    );
-
-  });
-
-}
-
-
-async function respondToTradeRequest(
-  requestId,
-  accepted
-) {
-
-  const newStatus =
-    accepted
-      ? "accepted"
-      : "declined";
-
-  const { error } =
-    await supabaseClient
-      .from("trade_requests")
-      .update({
-        status: newStatus
-      })
-      .eq("id", requestId);
-
-  if (error) {
-
-    console.error(
-      "TRADE RESPONSE ERROR:",
-      error
-    );
-
-    return;
-  }
-
-  if (accepted) {
-
-    alert(
-      "Trade accepted! We'll build the trade window next."
-    );
-
-  } else {
-
-    alert(
-      "Trade request declined."
-    );
-
-  }
-
-}
-
-
-// Check for requests every 3 seconds
 
 setInterval(
   checkTradeRequests,
@@ -585,3 +390,7 @@ setInterval(
 );
 
 checkTradeRequests();
+
+console.log(
+  "PLAYERS.JS V3 READY"
+);
