@@ -1025,36 +1025,66 @@
         return;
       }
 
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from("players")
-          .select("game_data")
-          .eq("id", user.id)
-          .maybeSingle();
+const {
+  data,
+  error
+} = await supabaseClient
+  .from("players")
+  .select("game_data")
+  .eq("id", user.id)
+  .maybeSingle();
 
-      if (error) {
+if (error) {
 
-        console.error(
-          "CLOUD LOAD ERROR:",
-          error
-        );
+  console.error("CLOUD LOAD ERROR:", error);
 
-        if (showMessage) {
+  if (showMessage) {
+    showNotification(
+      "Cloud load failed: " + error.message
+    );
+  }
 
-          showNotification(
-            "Cloud load failed: " +
-            error.message
-          );
-        }
+  return;
+}
 
-        return;
-      }
+// No player row yet = create one
+if (!data) {
 
-      const save =
-        data?.game_data;
+  console.log("No player row found. Creating player...");
+
+  const { error: createError } = await supabaseClient
+    .from("players")
+    .insert({
+      id: user.id,
+      username: user.email
+        ? user.email.split("@")[0]
+        : "Player",
+      game_data: {}
+    });
+
+  if (createError) {
+
+    console.error(
+      "PLAYER CREATION ERROR:",
+      createError
+    );
+
+    if (showMessage) {
+      showNotification(
+        "Could not create player: " +
+        createError.message
+      );
+    }
+
+    return;
+  }
+
+  console.log("PLAYER ROW CREATED");
+
+  return;
+}
+
+const save = data.game_data;
 
       if (
         !save ||
