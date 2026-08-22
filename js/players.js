@@ -1,5 +1,5 @@
 // =========================
-// LINEAR PLAYERS TAB
+// LINEAR PLAYERS + TRADING
 // =========================
 
 console.log("PLAYERS.JS LOADED");
@@ -9,61 +9,101 @@ const playersPanel = document.getElementById("playersPanel");
 const playersList = document.getElementById("playersList");
 const refreshPlayersBtn = document.getElementById("refreshPlayersBtn");
 
+
+// =========================
+// GET CURRENT USER
+// =========================
+
 async function getPlayerUser() {
-  const { data, error } = await supabaseClient.auth.getUser();
+
+  const { data, error } =
+    await supabaseClient.auth.getUser();
 
   if (error) {
-    console.error("GET USER ERROR:", error);
+
+    console.error(
+      "GET USER ERROR:",
+      error
+    );
+
     return null;
   }
 
   return data.user;
 }
 
+
+// =========================
+// UPDATE LAST SEEN
+// =========================
+
 async function updateLastSeen() {
 
   const user = await getPlayerUser();
 
-  if (!user) {
-    console.log("No logged-in user for last_seen");
-    return;
-  }
+  if (!user) return;
 
-  const { error } = await supabaseClient
-    .from("players")
-    .update({
-      last_seen: new Date().toISOString()
-    })
-    .eq("id", user.id);
+  const { error } =
+    await supabaseClient
+      .from("players")
+      .update({
+        last_seen:
+          new Date().toISOString()
+      })
+      .eq("id", user.id);
 
   if (error) {
-    console.error("LAST SEEN ERROR:", error);
+
+    console.error(
+      "LAST SEEN ERROR:",
+      error
+    );
+
   }
 }
+
+
+// =========================
+// LOAD PLAYERS
+// =========================
 
 async function loadPlayers() {
 
   if (!playersList) return;
 
-  playersList.textContent = "Loading players...";
+  playersList.textContent =
+    "Loading players...";
 
-  const user = await getPlayerUser();
+  const user =
+    await getPlayerUser();
 
   if (!user) {
-    playersList.textContent = "You are not logged in.";
+
+    playersList.textContent =
+      "You are not logged in.";
+
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from("players")
-    .select("id, username, last_seen")
-    .order("last_seen", {
-      ascending: false
-    });
+  const { data, error } =
+    await supabaseClient
+      .from("players")
+      .select(
+        "id, username, last_seen"
+      )
+      .order(
+        "last_seen",
+        {
+          ascending: false
+        }
+      );
 
   if (error) {
 
-    console.error("PLAYERS LOAD ERROR:", error);
+    console.error(
+      "PLAYERS LOAD ERROR:",
+      error
+    );
 
     playersList.textContent =
       "ERROR: " + error.message;
@@ -73,9 +113,11 @@ async function loadPlayers() {
 
   playersList.innerHTML = "";
 
-  const otherPlayers = data.filter(
-    player => player.id !== user.id
-  );
+  const otherPlayers =
+    data.filter(
+      player =>
+        player.id !== user.id
+    );
 
   if (otherPlayers.length === 0) {
 
@@ -89,13 +131,17 @@ async function loadPlayers() {
 
   otherPlayers.forEach(player => {
 
-    const card = document.createElement("div");
+    const card =
+      document.createElement("div");
 
-    card.className = "playerCard";
+    card.className =
+      "playerCard";
 
     const lastSeen =
       player.last_seen
-        ? new Date(player.last_seen).getTime()
+        ? new Date(
+            player.last_seen
+          ).getTime()
         : 0;
 
     const online =
@@ -105,16 +151,25 @@ async function loadPlayers() {
     card.innerHTML = `
       <strong>
         ${online ? "🟢" : "⚫"}
-        ${escapePlayerName(player.username)}
+        ${escapePlayerName(
+          player.username
+        )}
       </strong>
 
-      <span class="${online ? "playerOnline" : "playerOffline"}">
+      <span class="${
+        online
+          ? "playerOnline"
+          : "playerOffline"
+      }">
         ${online ? " ONLINE" : " OFFLINE"}
       </span>
 
       <button
         class="tradeButton"
-        disabled
+        data-player-id="${player.id}"
+        data-player-name="${escapePlayerName(
+          player.username
+        )}"
       >
         TRADE
       </button>
@@ -123,51 +178,203 @@ async function loadPlayers() {
     playersList.appendChild(card);
 
   });
+
+  // Add trade button listeners
+
+  document
+    .querySelectorAll(".tradeButton")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          sendTradeRequest(
+            button.dataset.playerId,
+            button.dataset.playerName
+          );
+
+        }
+      );
+
+    });
+
 }
 
-function escapePlayerName(name) {
 
-  const div = document.createElement("div");
+// =========================
+// SEND TRADE REQUEST
+// =========================
 
-  div.textContent = name || "Unknown";
+async function sendTradeRequest(
+  receiverId,
+  receiverName
+) {
+
+  const user =
+    await getPlayerUser();
+
+  if (!user) {
+
+    alert(
+      "You are not logged in."
+    );
+
+    return;
+  }
+
+  if (
+    receiverId === user.id
+  ) {
+
+    return;
+  }
+
+  // Check for existing pending request
+
+  const {
+    data: existing,
+    error: checkError
+  } =
+    await supabaseClient
+      .from("trade_requests")
+      .select("id")
+      .eq("sender_id", user.id)
+      .eq(
+        "receiver_id",
+        receiverId
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+      .maybeSingle();
+
+  if (checkError) {
+
+    console.error(
+      "TRADE CHECK ERROR:",
+      checkError
+    );
+
+    alert(
+      "Could not check trade request."
+    );
+
+    return;
+  }
+
+  if (existing) {
+
+    alert(
+      "You already sent a trade request to " +
+      receiverName
+    );
+
+    return;
+  }
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from("trade_requests")
+      .insert({
+
+        sender_id:
+          user.id,
+
+        receiver_id:
+          receiverId,
+
+        status:
+          "pending"
+
+      });
+
+  if (error) {
+
+    console.error(
+      "TRADE REQUEST ERROR:",
+      error
+    );
+
+    alert(
+      "Trade request failed: " +
+      error.message
+    );
+
+    return;
+  }
+
+  alert(
+    "Trade request sent to " +
+    receiverName + "!"
+  );
+
+}
+
+
+// =========================
+// ESCAPE USERNAME
+// =========================
+
+function escapePlayerName(
+  name
+) {
+
+  const div =
+    document.createElement("div");
+
+  div.textContent =
+    name || "Unknown";
 
   return div.innerHTML;
 }
 
 
+// =========================
 // PLAYERS BUTTON
+// =========================
 
 if (playersBtn) {
 
-  playersBtn.addEventListener("click", async () => {
+  playersBtn.addEventListener(
+    "click",
+    async () => {
 
-    console.log("PLAYERS BUTTON CLICKED");
+      console.log(
+        "PLAYERS BUTTON CLICKED"
+      );
 
-    if (
-      playersPanel.style.display === "none" ||
-      playersPanel.style.display === ""
-    ) {
+      if (
+        playersPanel.style.display ===
+          "none" ||
+        playersPanel.style.display ===
+          ""
+      ) {
 
-      playersPanel.style.display = "block";
+        playersPanel.style.display =
+          "block";
 
-      await loadPlayers();
+        await loadPlayers();
 
-    } else {
+      } else {
 
-      playersPanel.style.display = "none";
+        playersPanel.style.display =
+          "none";
+
+      }
 
     }
-
-  });
-
-} else {
-
-  console.error("playersBtn NOT FOUND");
+  );
 
 }
 
 
+// =========================
 // REFRESH BUTTON
+// =========================
 
 if (refreshPlayersBtn) {
 
@@ -179,7 +386,9 @@ if (refreshPlayersBtn) {
 }
 
 
-// UPDATE ONLINE STATUS
+// =========================
+// ONLINE STATUS
+// =========================
 
 updateLastSeen();
 
@@ -188,4 +397,7 @@ setInterval(
   30000
 );
 
-console.log("PLAYERS.JS READY");
+
+console.log(
+  "PLAYERS.JS READY"
+);
