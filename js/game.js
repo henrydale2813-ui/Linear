@@ -1033,7 +1033,7 @@
           .from("players")
           .select("game_data")
           .eq("id", user.id)
-          .maybesingle();
+          .maybeSingle();
 
       if (error) {
 
