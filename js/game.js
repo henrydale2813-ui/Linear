@@ -1,8 +1,7 @@
 // js/game.js
-// Core game logic for Linear
+// LINEAR - Game + Supabase Cloud Saves
 
 (() => {
-  "use strict";
 
   // =========================
   // GAME STATE
@@ -11,19 +10,19 @@
   let money = 10;
   let autoIncome = 0;
   let multiplier = 1;
-
   let tickInterval = 1000;
-  let tickBoostCost = 1000000;
 
+  let tickBoostCost = 1000000;
   let boostActiveUntil = null;
-  let boostCooldown = 0;
-  let boostTimer = 0;
 
   let shopCountdown = 120;
   let petShopCountdown = 120;
 
+  let boostCooldown = 0;
+  let boostTimer = 0;
+
   // =========================
-  // GAME DATA
+  // DATA
   // =========================
 
   const itemNames = [
@@ -37,69 +36,15 @@
   ];
 
   const rarities = [
-    {
-      name: "Common",
-      bonus: 1,
-      cost: 10,
-      color: "white",
-      chance: 40
-    },
-    {
-      name: "Uncommon",
-      bonus: 5,
-      cost: 100,
-      color: "lime",
-      chance: 20
-    },
-    {
-      name: "Rare",
-      bonus: 15,
-      cost: 1000,
-      color: "aqua",
-      chance: 15
-    },
-    {
-      name: "Epic",
-      bonus: 25,
-      cost: 10000,
-      color: "violet",
-      chance: 10
-    },
-    {
-      name: "Legendary",
-      bonus: 50,
-      cost: 50000,
-      color: "orange",
-      chance: 5
-    },
-    {
-      name: "Mythic",
-      bonus: 100,
-      cost: 75000,
-      color: "magenta",
-      chance: 3
-    },
-    {
-      name: "Insane",
-      bonus: 300,
-      cost: 100000,
-      color: "red",
-      chance: 1
-    },
-    {
-      name: "Godly",
-      bonus: 500,
-      cost: 500000,
-      color: "gold",
-      chance: 0.4
-    },
-    {
-      name: "Crazy",
-      bonus: 1000,
-      cost: 1000000,
-      color: "cyan",
-      chance: 0.09
-    },
+    { name: "Common", bonus: 1, cost: 10, color: "white", chance: 40 },
+    { name: "Uncommon", bonus: 5, cost: 100, color: "lime", chance: 20 },
+    { name: "Rare", bonus: 15, cost: 1000, color: "aqua", chance: 15 },
+    { name: "Epic", bonus: 25, cost: 10000, color: "violet", chance: 10 },
+    { name: "Legendary", bonus: 50, cost: 50000, color: "orange", chance: 5 },
+    { name: "Mythic", bonus: 100, cost: 75000, color: "magenta", chance: 3 },
+    { name: "Insane", bonus: 300, cost: 100000, color: "red", chance: 1 },
+    { name: "Godly", bonus: 500, cost: 500000, color: "gold", chance: 0.4 },
+    { name: "Crazy", bonus: 1000, cost: 1000000, color: "cyan", chance: 0.09 },
 
     // Easter egg
     {
@@ -111,6 +56,10 @@
     }
   ];
 
+  // =========================
+  // INVENTORY / SHOPS
+  // =========================
+
   let itemsOwned = [];
   let petsOwned = [];
 
@@ -118,7 +67,7 @@
   let currentPetSlots = [];
 
   // =========================
-  // DOM ELEMENTS
+  // DOM
   // =========================
 
   const moneyEl = document.getElementById("money");
@@ -155,10 +104,11 @@
     document.getElementById("notifications");
 
   // =========================
-  // UTILITIES
+  // NOTIFICATIONS
   // =========================
 
   function showNotification(text, ms = 3000) {
+
     if (!notificationsEl) return;
 
     const note = document.createElement("div");
@@ -173,36 +123,43 @@
     }, ms);
   }
 
-  function formatNumber(number) {
-    if (typeof number !== "number") {
-      return number;
+  // =========================
+  // NUMBER FORMAT
+  // =========================
+
+  function formatNumber(n) {
+
+    if (typeof n !== "number") {
+      return n;
     }
 
-    if (!Number.isFinite(number)) {
-      return number.toString();
+    if (!isFinite(n)) {
+      return n.toString();
     }
 
-    return Math.floor(number).toLocaleString();
+    return Math.floor(n).toLocaleString();
   }
 
   // =========================
-  // RANDOM RARITY
+  // RARITY
   // =========================
 
   function getRandomRarity() {
-    const totalChance = rarities.reduce(
-      (total, rarity) => total + rarity.chance,
+
+    const total = rarities.reduce(
+      (sum, rarity) => sum + rarity.chance,
       0
     );
 
-    const roll = Math.random() * totalChance;
+    const roll = Math.random() * total;
 
-    let current = 0;
+    let sum = 0;
 
     for (const rarity of rarities) {
-      current += rarity.chance;
 
-      if (roll <= current) {
+      sum += rarity.chance;
+
+      if (roll <= sum) {
         return rarity;
       }
     }
@@ -215,18 +172,20 @@
   // =========================
 
   function fillItemSlots() {
+
     currentItemSlots = [];
 
     for (let i = 0; i < 4; i++) {
+
       const rarity = getRandomRarity();
 
-      const itemName =
+      const name =
         itemNames[
           Math.floor(Math.random() * itemNames.length)
         ];
 
       currentItemSlots.push({
-        name: itemName,
+        name: name,
         rarityName: rarity.name,
         bonus: rarity.bonus,
         cost: rarity.cost,
@@ -237,9 +196,11 @@
   }
 
   function fillPetSlots() {
+
     currentPetSlots = [];
 
     for (let i = 0; i < 3; i++) {
+
       const rarity = getRandomRarity();
 
       currentPetSlots.push({
@@ -264,7 +225,7 @@
 
     // ITEMS
 
-    currentItemSlots.forEach((slot) => {
+    currentItemSlots.forEach(slot => {
 
       const div = document.createElement("div");
 
@@ -285,12 +246,14 @@
 
       button.disabled = slot.bought;
 
-      button.addEventListener("click", () => {
+      button.onclick = () => {
 
         if (slot.bought) return;
 
         if (money < slot.cost) {
-          alert("Cannot buy: insufficient funds.");
+
+          alert("Cannot buy: insufficient funds");
+
           return;
         }
 
@@ -314,8 +277,11 @@
         );
 
         updateDisplay();
+
         renderShops();
-      });
+
+        saveGame(false);
+      };
 
       div.appendChild(button);
 
@@ -326,7 +292,7 @@
 
     // PETS
 
-    currentPetSlots.forEach((slot) => {
+    currentPetSlots.forEach(slot => {
 
       const div = document.createElement("div");
 
@@ -346,12 +312,14 @@
 
       button.disabled = slot.bought;
 
-      button.addEventListener("click", () => {
+      button.onclick = () => {
 
         if (slot.bought) return;
 
         if (money < slot.cost) {
-          alert("Cannot hatch: insufficient funds.");
+
+          alert("Cannot hatch: insufficient funds");
+
           return;
         }
 
@@ -359,7 +327,7 @@
 
         const rarity =
           rarities.find(
-            (r) => r.name === slot.rarityName
+            r => r.name === slot.rarityName
           ) || rarities[0];
 
         const pet = {
@@ -381,8 +349,11 @@
         );
 
         updateDisplay();
+
         renderShops();
-      });
+
+        saveGame(false);
+      };
 
       div.appendChild(button);
 
@@ -402,9 +373,10 @@
 
     itemsListEl.innerHTML = "";
 
-    itemsOwned.forEach((item) => {
+    itemsOwned.forEach(item => {
 
-      const li = document.createElement("li");
+      const li =
+        document.createElement("li");
 
       li.textContent =
         `${item.name} (${item.rarityName}) +${item.bonus}/sec`;
@@ -416,15 +388,20 @@
     });
   }
 
+  // =========================
+  // OWNED PETS
+  // =========================
+
   function renderPetsOwned() {
 
     if (!petsListEl) return;
 
     petsListEl.innerHTML = "";
 
-    petsOwned.forEach((pet) => {
+    petsOwned.forEach(pet => {
 
-      const li = document.createElement("li");
+      const li =
+        document.createElement("li");
 
       li.textContent =
         `${pet.rarityName} Pet (+${pet.bonus}/sec)`;
@@ -449,15 +426,19 @@
 
     if (incomeEl) {
       incomeEl.textContent =
-        formatNumber(autoIncome * multiplier);
+        formatNumber(
+          autoIncome * multiplier
+        );
     }
 
     if (tickIntervalDisplayEl) {
+
       tickIntervalDisplayEl.textContent =
         (tickInterval / 1000).toFixed(2) + "s";
     }
 
     if (tickBoostStatusEl) {
+
       tickBoostStatusEl.textContent =
         tickInterval < 1000
           ? "Fast"
@@ -466,19 +447,16 @@
 
     if (boostStatusEl) {
 
-      if (
+      boostStatusEl.textContent =
         boostActiveUntil &&
         Date.now() < boostActiveUntil
-      ) {
-        boostStatusEl.textContent = "Active";
-      } else {
-        boostStatusEl.textContent = "None";
-      }
+          ? "Active"
+          : "None";
     }
   }
 
   // =========================
-  // INCOME
+  // INCOME TICK
   // =========================
 
   let lastTick = Date.now();
@@ -501,7 +479,7 @@
   setInterval(tick, 50);
 
   // =========================
-  // BOOST BUTTONS
+  // BOOST BUTTON TEXT
   // =========================
 
   function updateBoostButtonsText() {
@@ -530,25 +508,59 @@
     }
   }
 
-  // BOOST
+  // =========================
+  // BOOST TIMER
+  // =========================
+
+  setInterval(() => {
+
+    if (boostCooldown > 0) {
+      boostCooldown--;
+    }
+
+    if (boostTimer > 0) {
+      boostTimer--;
+    }
+
+    if (
+      boostActiveUntil &&
+      Date.now() >= boostActiveUntil
+    ) {
+
+      multiplier = 1;
+      boostActiveUntil = null;
+    }
+
+    updateBoostButtonsText();
+    updateDisplay();
+
+  }, 1000);
+
+  // =========================
+  // 2X BOOST
+  // =========================
 
   document
     .getElementById("buyBoost")
     ?.addEventListener("click", () => {
 
       if (boostCooldown > 0) {
-        alert("Boost on cooldown.");
+
+        alert("Boost on cooldown");
+
         return;
       }
 
       if (money < 1000) {
-        alert("Insufficient funds.");
+
+        alert("Insufficient funds");
+
         return;
       }
 
       money -= 1000;
 
-      multiplier *= 2;
+      multiplier = 2;
 
       boostActiveUntil =
         Date.now() + 5 * 60 * 1000;
@@ -564,16 +576,22 @@
       );
 
       updateDisplay();
+
+      saveGame(false);
     });
 
+  // =========================
   // TICK BOOST
+  // =========================
 
   document
     .getElementById("buyTickBoost")
     ?.addEventListener("click", () => {
 
       if (money < tickBoostCost) {
-        alert("Not enough money.");
+
+        alert("Not enough money");
+
         return;
       }
 
@@ -592,44 +610,11 @@
       );
 
       updateDisplay();
+
       updateBoostButtonsText();
+
+      saveGame(false);
     });
-
-  // BOOST TIMER
-
-  setInterval(() => {
-
-    if (boostCooldown > 0) {
-      boostCooldown--;
-    }
-
-    if (boostTimer > 0) {
-      boostTimer--;
-    }
-
-    // Turn multiplier back to normal after 5 minutes.
-    if (
-      boostActiveUntil &&
-      Date.now() >= boostActiveUntil
-    ) {
-
-      if (multiplier > 1) {
-        multiplier = 1;
-      }
-
-      boostActiveUntil = null;
-      boostTimer = 0;
-
-      showNotification(
-        "2x Income Boost ended."
-      );
-
-      updateDisplay();
-    }
-
-    updateBoostButtonsText();
-
-  }, 1000);
 
   // =========================
   // ADMIN
@@ -639,10 +624,10 @@
     .getElementById("openAdmin")
     ?.addEventListener("click", () => {
 
-      const password =
+      const code =
         prompt("Enter admin password:");
 
-      if (password === "AllMyDiddys123$") {
+      if (code === "AllMyDiddys123$") {
 
         const adminArea =
           document.getElementById("adminArea");
@@ -653,7 +638,7 @@
 
       } else {
 
-        alert("Wrong password.");
+        alert("Wrong password");
       }
     });
 
@@ -664,13 +649,22 @@
       const input =
         document.getElementById("adminCmdInput");
 
-      if (!input) return;
+      if (!input) {
+
+        alert(
+          "No admin input element found"
+        );
+
+        return;
+      }
 
       const parts =
         input.value.trim().split(/\s+/);
 
-      if (!parts[0]) {
-        alert("Enter a command.");
+      if (!parts.length) {
+
+        alert("Enter a command");
+
         return;
       }
 
@@ -687,8 +681,10 @@
         const amount =
           parseInt(parts[1], 10);
 
-        if (Number.isNaN(amount)) {
-          alert("Invalid amount.");
+        if (isNaN(amount)) {
+
+          alert("Invalid amount");
+
           return;
         }
 
@@ -700,41 +696,49 @@
 
         updateDisplay();
 
-        return;
+        saveGame(false);
       }
 
       // FORCE ITEM
 
-      if (command === "forceitem") {
+      else if (command === "forceitem") {
 
-        const rarityName = parts[1];
+        const rarityName =
+          parts[1];
 
         if (!rarityName) {
-          alert("Specify a rarity.");
+
+          alert(
+            "Specify rarity name"
+          );
+
           return;
         }
 
         const rarity =
           rarities.find(
-            (r) =>
+            r =>
               r.name.toLowerCase() ===
               rarityName.toLowerCase()
           );
 
         if (!rarity) {
-          alert("Invalid rarity.");
+
+          alert("Invalid rarity");
+
           return;
         }
 
-        const itemName =
+        const name =
           itemNames[
             Math.floor(
-              Math.random() * itemNames.length
+              Math.random() *
+              itemNames.length
             )
           ];
 
         itemsOwned.push({
-          name: itemName,
+          name: name,
           rarityName: rarity.name,
           bonus: rarity.bonus,
           color: rarity.color
@@ -745,34 +749,41 @@
         renderItemsOwned();
 
         showNotification(
-          `Forced give: ${rarity.name} ${itemName}`
+          `Forced give: ${rarity.name} ${name}`
         );
 
         updateDisplay();
 
-        return;
+        saveGame(false);
       }
 
-      // FORCE PET
+      // FORCE EGG
 
-      if (command === "forceegg") {
+      else if (command === "forceegg") {
 
-        const rarityName = parts[1];
+        const rarityName =
+          parts[1];
 
         if (!rarityName) {
-          alert("Specify a rarity.");
+
+          alert(
+            "Specify rarity name"
+          );
+
           return;
         }
 
         const rarity =
           rarities.find(
-            (r) =>
+            r =>
               r.name.toLowerCase() ===
               rarityName.toLowerCase()
           );
 
         if (!rarity) {
-          alert("Invalid rarity.");
+
+          alert("Invalid rarity");
+
           return;
         }
 
@@ -792,10 +803,12 @@
 
         updateDisplay();
 
-        return;
-      }
+        saveGame(false);
 
-      alert("Unknown command.");
+      } else {
+
+        alert("Unknown command");
+      }
     });
 
   // =========================
@@ -828,156 +841,432 @@
 
       window.location.href =
         `mailto:${email}?subject=${subject}&body=${body}`;
+
+      showNotification(
+        "Opened mail client to report bug"
+      );
     });
 
-  // =========================
-  // SAVE
-  // =========================
+  // ============================================================
+  // SUPABASE CLOUD SAVING
+  // ============================================================
 
-  function saveGame() {
+  async function getCurrentUser() {
 
-    const data = {
-      money,
-      autoIncome,
-      multiplier,
-      tickInterval,
-      tickBoostCost,
-      itemsOwned,
-      petsOwned,
-      currentItemSlots,
-      currentPetSlots,
-      boostActiveUntil
-    };
+    if (
+      typeof supabaseClient ===
+      "undefined"
+    ) {
 
-    localStorage.setItem(
-      "linear_save",
-      JSON.stringify(data)
-    );
+      console.error(
+        "supabaseClient is not available."
+      );
 
-    const lastSaved =
-      document.getElementById("lastSaved");
-
-    if (lastSaved) {
-
-      lastSaved.textContent =
-        "Saved at " +
-        new Date().toLocaleTimeString();
+      return null;
     }
 
-    showNotification("Game saved.");
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getUser();
+
+    if (error) {
+
+      console.error(
+        "Could not get current user:",
+        error
+      );
+
+      return null;
+    }
+
+    return data.user;
   }
 
   // =========================
-  // LOAD
+  // CREATE SAVE DATA
   // =========================
 
-  function loadGame() {
+  function getSaveData() {
 
-    const raw =
-      localStorage.getItem("linear_save");
+    return {
 
-    if (!raw) {
-      alert("No save found.");
-      return;
-    }
+      money: money,
+
+      autoIncome: autoIncome,
+
+      multiplier: multiplier,
+
+      tickInterval: tickInterval,
+
+      tickBoostCost: tickBoostCost,
+
+      boostActiveUntil: boostActiveUntil,
+
+      boostCooldown: boostCooldown,
+
+      boostTimer: boostTimer,
+
+      shopCountdown: shopCountdown,
+
+      petShopCountdown: petShopCountdown,
+
+      itemsOwned: itemsOwned,
+
+      petsOwned: petsOwned,
+
+      currentItemSlots: currentItemSlots,
+
+      currentPetSlots: currentPetSlots
+    };
+  }
+
+  // =========================
+  // SAVE TO SUPABASE
+  // =========================
+
+  async function saveGame(showMessage = true) {
 
     try {
 
-      const data =
-        JSON.parse(raw);
+      const user =
+        await getCurrentUser();
 
-      money =
-        Number(data.money) || money;
+      if (!user) {
 
-      autoIncome =
-        Number(data.autoIncome) || autoIncome;
+        console.log(
+          "No logged-in user. Cloud save skipped."
+        );
 
-      multiplier =
-        Number(data.multiplier) || multiplier;
+        return;
+      }
 
-      tickInterval =
-        Number(data.tickInterval) || tickInterval;
+      const saveData =
+        getSaveData();
 
-      tickBoostCost =
-        Number(data.tickBoostCost) || tickBoostCost;
+      const {
+        error
+      } =
+        await supabaseClient
+          .from("players")
+          .update({
+            game_data: saveData
+          })
+          .eq("id", user.id);
 
-      itemsOwned =
-        Array.isArray(data.itemsOwned)
-          ? data.itemsOwned
-          : [];
+      if (error) {
 
-      petsOwned =
-        Array.isArray(data.petsOwned)
-          ? data.petsOwned
-          : [];
+        console.error(
+          "CLOUD SAVE ERROR:",
+          error
+        );
 
-      currentItemSlots =
-        Array.isArray(data.currentItemSlots)
-          ? data.currentItemSlots
-          : [];
+        if (showMessage) {
 
-      currentPetSlots =
-        Array.isArray(data.currentPetSlots)
-          ? data.currentPetSlots
-          : [];
+          showNotification(
+            "Cloud save failed: " +
+            error.message
+          );
+        }
 
-      boostActiveUntil =
-        data.boostActiveUntil || null;
+        return;
+      }
 
-      renderItemsOwned();
-      renderPetsOwned();
-      renderShops();
-      updateDisplay();
-      updateBoostButtonsText();
-
-      showNotification(
-        "Game loaded."
+      console.log(
+        "GAME SAVED TO SUPABASE"
       );
+
+      const lastSavedEl =
+        document.getElementById(
+          "lastSaved"
+        );
+
+      if (lastSavedEl) {
+
+        lastSavedEl.textContent =
+          "Cloud saved at " +
+          new Date().toLocaleTimeString();
+      }
+
+      if (showMessage) {
+
+        showNotification(
+          "Game saved to cloud!"
+        );
+      }
 
     } catch (error) {
 
-      alert(
-        "Failed to load save: " +
-        error.message
+      console.error(
+        "SAVE ERROR:",
+        error
       );
     }
   }
+
+  // =========================
+  // LOAD FROM SUPABASE
+  // =========================
+
+  async function loadGame(showMessage = true) {
+
+    try {
+
+      const user =
+        await getCurrentUser();
+
+      if (!user) {
+
+        console.log(
+          "No logged-in user."
+        );
+
+        return;
+      }
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .from("players")
+          .select("game_data")
+          .eq("id", user.id)
+          .single();
+
+      if (error) {
+
+        console.error(
+          "CLOUD LOAD ERROR:",
+          error
+        );
+
+        if (showMessage) {
+
+          showNotification(
+            "Cloud load failed: " +
+            error.message
+          );
+        }
+
+        return;
+      }
+
+      const save =
+        data?.game_data;
+
+      if (
+        !save ||
+        Object.keys(save).length === 0
+      ) {
+
+        console.log(
+          "No cloud save exists yet."
+        );
+
+        return;
+      }
+
+      money =
+        Number(save.money ?? money);
+
+      autoIncome =
+        Number(
+          save.autoIncome ??
+          autoIncome
+        );
+
+      multiplier =
+        Number(
+          save.multiplier ??
+          multiplier
+        );
+
+      tickInterval =
+        Number(
+          save.tickInterval ??
+          tickInterval
+        );
+
+      tickBoostCost =
+        Number(
+          save.tickBoostCost ??
+          tickBoostCost
+        );
+
+      boostActiveUntil =
+        save.boostActiveUntil ??
+        null;
+
+      boostCooldown =
+        Number(
+          save.boostCooldown ??
+          0
+        );
+
+      boostTimer =
+        Number(
+          save.boostTimer ??
+          0
+        );
+
+      shopCountdown =
+        Number(
+          save.shopCountdown ??
+          120
+        );
+
+      petShopCountdown =
+        Number(
+          save.petShopCountdown ??
+          120
+        );
+
+      itemsOwned =
+        Array.isArray(save.itemsOwned)
+          ? save.itemsOwned
+          : [];
+
+      petsOwned =
+        Array.isArray(save.petsOwned)
+          ? save.petsOwned
+          : [];
+
+      currentItemSlots =
+        Array.isArray(
+          save.currentItemSlots
+        )
+          ? save.currentItemSlots
+          : [];
+
+      currentPetSlots =
+        Array.isArray(
+          save.currentPetSlots
+        )
+          ? save.currentPetSlots
+          : [];
+
+      // If shops weren't saved yet
+      if (
+        currentItemSlots.length === 0
+      ) {
+
+        fillItemSlots();
+      }
+
+      if (
+        currentPetSlots.length === 0
+      ) {
+
+        fillPetSlots();
+      }
+
+      renderItemsOwned();
+
+      renderPetsOwned();
+
+      renderShops();
+
+      updateDisplay();
+
+      updateBoostButtonsText();
+
+      console.log(
+        "GAME LOADED FROM SUPABASE"
+      );
+
+      if (showMessage) {
+
+        showNotification(
+          "Game loaded from cloud!"
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        "LOAD ERROR:",
+        error
+      );
+    }
+  }
+
+  // =========================
+  // SAVE BUTTON
+  // =========================
 
   document
     .getElementById("saveBtn")
     ?.addEventListener(
       "click",
-      saveGame
+      () => saveGame(true)
     );
+
+  // =========================
+  // LOAD BUTTON
+  // =========================
 
   document
     .getElementById("loadBtn")
     ?.addEventListener(
       "click",
-      loadGame
+      () => loadGame(true)
     );
 
   // =========================
-  // MUSIC
+  // AUTO SAVE
+  // =========================
+
+  setInterval(() => {
+
+    saveGame(false);
+
+  }, 10000);
+
+  // =========================
+  // SAVE WHEN LEAVING
+  // =========================
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+
+      // Normal autosave handles most cases.
+      // This is intentionally not awaited because
+      // browsers can cancel normal async requests
+      // during page unload.
+
+      saveGame(false);
+    }
+  );
+
+  // =========================
+  // SPOTIFY
   // =========================
 
   document
     .getElementById("playMusicBtn")
-    ?.addEventListener("click", () => {
+    ?.addEventListener(
+      "click",
+      () => {
 
-      const player =
-        document.getElementById(
-          "spotifyPlayer"
+        const player =
+          document.getElementById(
+            "spotifyPlayer"
+          );
+
+        if (player) {
+
+          player.style.display =
+            "block";
+        }
+
+        showNotification(
+          "Scroll down and press Play in Spotify player!"
         );
-
-      if (player) {
-        player.style.display = "block";
       }
-
-      showNotification(
-        "Scroll down and press Play in Spotify!"
-      );
-    });
+    );
 
   // =========================
   // SHOP TIMERS
@@ -989,13 +1278,21 @@
     petShopCountdown--;
 
     if (itemTimerEl) {
+
       itemTimerEl.textContent =
-        Math.max(0, shopCountdown);
+        Math.max(
+          0,
+          shopCountdown
+        );
     }
 
     if (petTimerEl) {
+
       petTimerEl.textContent =
-        Math.max(0, petShopCountdown);
+        Math.max(
+          0,
+          petShopCountdown
+        );
     }
 
     if (shopCountdown <= 0) {
@@ -1019,19 +1316,89 @@
   }, 1000);
 
   // =========================
-  // START GAME
+  // INITIALIZE
   // =========================
 
   fillItemSlots();
+
   fillPetSlots();
 
   renderShops();
+
   renderItemsOwned();
+
   renderPetsOwned();
 
   updateDisplay();
+
   updateBoostButtonsText();
 
-  console.log("LINEAR GAME FILE LOADED");
+  // =========================
+  // LOAD CLOUD SAVE
+  // =========================
+
+  // Wait a little so Supabase authentication
+  // has time to restore the session.
+
+  setTimeout(() => {
+
+    loadGame(false);
+
+  }, 1000);
+
+  // =========================
+  // DEBUG
+  // =========================
+
+  window._linearDebug = {
+
+    rarities,
+
+    forceGiveRarity: (name) => {
+
+      const rarity =
+        rarities.find(
+          r =>
+            r.name
+              .toLowerCase()
+              .includes(
+                name.toLowerCase()
+              )
+        );
+
+      if (!rarity) {
+        return null;
+      }
+
+      petsOwned.push({
+        rarityName: rarity.name,
+        bonus: rarity.bonus,
+        color: rarity.color
+      });
+
+      autoIncome += rarity.bonus;
+
+      renderPetsOwned();
+
+      updateDisplay();
+
+      saveGame(false);
+
+      return rarity;
+    },
+
+    state: () => ({
+      money,
+      autoIncome,
+      multiplier,
+      tickInterval,
+      itemsOwned,
+      petsOwned
+    })
+  };
+
+  console.log(
+    "LINEAR GAME.JS WITH CLOUD SAVES LOADED"
+  );
 
 })();
