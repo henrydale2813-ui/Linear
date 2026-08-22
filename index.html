@@ -173,6 +173,41 @@
       display: none;
     }
 
+    /* =========================
+       PLAYERS PANEL
+       ========================= */
+
+    #playersPanel {
+      display: none;
+      max-width: 900px;
+      margin: 20px auto;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border: 3px solid #fff;
+      box-shadow: 5px 5px 0 #000;
+    }
+
+    .playerCard {
+      background: #222;
+      border: 3px solid #fff;
+      padding: 15px;
+      margin: 10px 0;
+      box-shadow: 3px 3px 0 #000;
+      text-align: left;
+    }
+
+    .playerOnline {
+      color: #00ff00;
+    }
+
+    .playerOffline {
+      color: #888;
+    }
+
+    .tradeButton {
+      float: right;
+    }
+
     @media (max-width: 600px) {
       body {
         padding: 10px;
@@ -232,27 +267,7 @@
        ===================================== -->
 
   <div id="gameScreen">
-<div id="playersPanel" style="
-  display:none;
-  max-width:900px;
-  margin:20px auto;
-  background:#000;
-  padding:15px;
-  border:3px solid #fff;
-  box-shadow:5px 5px 0 #000;
-">
 
-  <h2>ONLINE PLAYERS</h2>
-
-  <button id="refreshPlayersBtn">
-    Refresh Players
-  </button>
-
-  <div id="playersList">
-    Loading players...
-  </div>
-
-</div>
     <h1>Linear</h1>
 
     <div class="infoRow">
@@ -326,9 +341,11 @@
          ===================================== -->
 
     <div style="max-width:900px;margin:0 auto;">
+
       <button id="playersBtn">
-      Players
+        Players
       </button>
+
       <button id="openAdmin">
         Admin
       </button>
@@ -346,6 +363,25 @@
       </button>
 
       <div id="lastSaved" class="muted"></div>
+
+    </div>
+
+
+    <!-- =====================================
+         PLAYERS
+         ===================================== -->
+
+    <div id="playersPanel">
+
+      <h2>ONLINE PLAYERS</h2>
+
+      <button id="refreshPlayersBtn">
+        Refresh Players
+      </button>
+
+      <div id="playersList">
+        Loading players...
+      </div>
 
     </div>
 
@@ -440,13 +476,10 @@
        SUPABASE
        ===================================== -->
 
-  <!-- 1. Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- 2. Your Supabase login code -->
   <script src="js/supabase.js"></script>
 
-  <!-- 3. Your Linear game code -->
   <script src="js/game.js"></script>
 
 </body>
