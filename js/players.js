@@ -2,7 +2,7 @@
 // LINEAR PLAYERS + TRADING
 // =========================
 
-console.log("PLAYERS.JS LOADED");
+console.log("PLAYERS.JS LOADED V2");
 
 const playersBtn = document.getElementById("playersBtn");
 const playersPanel = document.getElementById("playersPanel");
@@ -488,7 +488,6 @@ async function checkTradeRequests() {
       id,
       sender_id,
       created_at,
-      players!trade_requests_sender_id_fkey (
         username
       )
     `)
