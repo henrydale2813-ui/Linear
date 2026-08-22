@@ -215,6 +215,84 @@ async function sendTradeRequest(
 
 async function checkTradeRequests() {
 
+  const user = await getTradeUser();
+
+  if (!user) return;
+
+  const result = await supabaseClient
+    .from("trade_requests")
+    .select("id, sender_id, created_at")
+    .eq("receiver_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (result.error) {
+    console.error(
+      "TRADE REQUEST ERROR:",
+      result.error
+    );
+    return;
+  }
+
+  if (!result.data || result.data.length === 0) {
+    return;
+  }
+
+  window.seenTradeRequests =
+    window.seenTradeRequests || new Set();
+
+  for (const request of result.data) {
+
+    if (
+      window.seenTradeRequests.has(request.id)
+    ) {
+      continue;
+    }
+
+    window.seenTradeRequests.add(request.id);
+
+    const senderResult =
+      await supabaseClient
+        .from("players")
+        .select("username")
+        .eq("id", request.sender_id)
+        .maybeSingle();
+
+    const senderName =
+      senderResult.data?.username ||
+      "A player";
+
+    const accepted = confirm(
+      senderName +
+      " wants to trade with you!\n\n" +
+      "OK = Accept\n" +
+      "Cancel = Decline"
+    );
+
+    const newStatus =
+      accepted
+        ? "accepted"
+        : "declined";
+
+    const updateResult =
+      await supabaseClient
+        .from("trade_requests")
+        .update({
+          status: newStatus
+        })
+        .eq("id", request.id);
+
+    if (updateResult.error) {
+      console.error(
+        "TRADE RESPONSE ERROR:",
+        updateResult.error
+      );
+    }
+  }
+}
+
   const user =
     await getTradeUser();
 
